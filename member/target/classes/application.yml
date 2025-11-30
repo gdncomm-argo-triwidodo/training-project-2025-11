@@ -1,0 +1,21 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: member-service
+  datasource:
+    url: jdbc:h2:mem:memberdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+
+jwt:
+  secret: defaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
