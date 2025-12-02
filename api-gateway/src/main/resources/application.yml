@@ -6,25 +6,23 @@ spring:
     name: gateway-service
   cloud:
     gateway:
-      server:
-        webflux:
-          routes:
-            - id: member-service
-              uri: http://localhost:8081
-              predicates:
-                - Path=/member/**
-            - id: auth-route
-              uri: http://localhost:8081
-              predicates:
-                - Path=/auth/**
-            - id: product-service
-              uri: http://localhost:8082
-              predicates:
-                - Path=/product/**
-            - id: cart-service
-              uri: http://localhost:8083
-              predicates:
-                - Path=/cart/**
+      routes:
+        - id: member-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/member/**
+        - id: auth-route
+          uri: http://localhost:8081
+          predicates:
+            - Path=/auth/**
+        - id: product-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/product-service/**
+        - id: cart-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/cart/**
 
 jwt:
   secret: defaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890

@@ -36,12 +36,12 @@ public class MemberService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        // Member member = memberRepository.findByUsername(request.getUsername())
-        //         .orElseThrow(() -> new AuthenticationException("Invalid username or password"));
+        Member member = memberRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AuthenticationException("Invalid username or password"));
 
-        // if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
-        //     throw new AuthenticationException("Invalid username or password");
-        // }
+        if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
+            throw new AuthenticationException("Invalid username or password");
+        }
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", request.getEmail());

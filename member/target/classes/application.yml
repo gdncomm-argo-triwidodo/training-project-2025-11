@@ -1,21 +1,26 @@
 server:
   port: 8081
+  servlet:
+    context-path: /member
 
 spring:
   application:
     name: member-service
   datasource:
-    url: jdbc:h2:mem:memberdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
+    url: jdbc:postgresql://homelab.gosoft.web.id:5432/member
+    driverClassName: org.postgresql.Driver
+    username: admin_db
+    password: Password
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-  h2:
-    console:
-      enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 jwt:
-  secret: defaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
+  secret: ${JWT_SECRET:MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890}
