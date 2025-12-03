@@ -44,9 +44,10 @@ public class MemberService {
         }
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", request.getEmail());
+        claims.put("email", member.getEmail());
+        claims.put("userId", member.getId());
 
-        String token = jwtUtils.generateToken(String.valueOf(request.getEmail()), claims);
-        return new LoginResponse(token);
+        String token = jwtUtils.generateToken(String.valueOf(member.getEmail()), claims);
+        return new LoginResponse(token, member.getId());
     }
 }

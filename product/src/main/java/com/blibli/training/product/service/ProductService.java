@@ -1,6 +1,7 @@
 package com.blibli.training.product.service;
 
 import com.blibli.training.product.entity.Product;
+import com.blibli.training.product.model.web.PagedProductResponse;
 import com.blibli.training.product.model.web.SearchRequest;
 import com.blibli.training.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +33,18 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
-    public List<Product> searchProducts(SearchRequest searchRequest) {
-        return productRepository.searchProducts(searchRequest);
+    public PagedProductResponse searchProducts(SearchRequest searchRequest) {
+        List<Product> products = productRepository.searchProducts(searchRequest);
+        long totalElements = productRepository.countProducts(searchRequest);
+        int totalPages = (int) Math.ceil((double) totalElements / searchRequest.getSize());
+
+        return PagedProductResponse.builder()
+                .products(products)
+                .currentPage(searchRequest.getPage())
+                .pageSize(searchRequest.getSize())
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .build();
     }
 }
 

@@ -6,15 +6,29 @@ spring:
     name: gateway-service
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            exposedHeaders:
+              - "*"
+            allowCredentials: false
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
       routes:
         - id: member-service
           uri: http://localhost:8081
           predicates:
             - Path=/member/**
-        - id: auth-route
-          uri: http://localhost:8081
-          predicates:
-            - Path=/auth/**
         - id: product-service
           uri: http://localhost:8082
           predicates:
@@ -25,4 +39,14 @@ spring:
             - Path=/cart/**
 
 jwt:
-  secret: defaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
+  secret: MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
+
+gateway:
+  auth:
+    public-paths:
+      - /member/register
+      - /member/login
+      - /member/logout
+      - /member/hello
+      - /product-service/products
+      - /product-service/products/

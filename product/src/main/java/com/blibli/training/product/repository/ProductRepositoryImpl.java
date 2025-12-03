@@ -62,5 +62,35 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
 
         return mongoTemplate.find(query, Product.class);
     }
+
+    @Override
+    public long countProducts(SearchRequest searchRequest) {
+        Query query = new Query();
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        // Text search on name and description
+        if (searchRequest.getSearch() != null && !searchRequest.getSearch().isEmpty()) {
+            Criteria searchCriteria = new Criteria().orOperator(
+                Criteria.where("name").regex(searchRequest.getSearch(), "i"),
+                Criteria.where("description").regex(searchRequest.getSearch(), "i")
+            );
+            criteriaList.add(searchCriteria);
+        }
+
+        // Price range filter
+        if (searchRequest.getMinPrice() != null) {
+            criteriaList.add(Criteria.where("price").gte(searchRequest.getMinPrice()));
+        }
+        if (searchRequest.getMaxPrice() != null) {
+            criteriaList.add(Criteria.where("price").lte(searchRequest.getMaxPrice()));
+        }
+
+        // Combine all criteria
+        if (!criteriaList.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
+        }
+
+        return mongoTemplate.count(query, Product.class);
+    }
 }
 

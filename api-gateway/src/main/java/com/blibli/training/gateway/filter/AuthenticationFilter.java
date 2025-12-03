@@ -3,11 +3,11 @@ package com.blibli.training.gateway.filter;
 import com.blibli.training.framework.dto.BaseResponse;
 import com.blibli.training.framework.exception.AuthenticationException;
 import com.blibli.training.framework.security.JwtUtils;
+import com.blibli.training.gateway.config.AuthProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -23,16 +23,17 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Component
+@RequiredArgsConstructor
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
-    @Autowired
-    private JwtUtils jwtUtils;
+    private final JwtUtils jwtUtils;
+    private final AuthProperties authProperties;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
-        List<String> controllerIncluded = List.of("/auth/", "/member/register", "/member/login", "/member/hello");
-        if (controllerIncluded.stream().anyMatch(path::equalsIgnoreCase)) {
+        
+        if (isPublicPath(path)) {
             return chain.filter(exchange);
         }
 
@@ -52,7 +53,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             }
         }
 
-        String userId = jwtUtils.getUserIdFromToken(token);
+        // Extract userId from claims (not subject which is email)
+        String userId = String.valueOf(jwtUtils.getClaimFromToken(token, claims -> claims.get("userId")));
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .header("X-User-Id", userId)
                 .build();
@@ -74,6 +76,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         return null;
+    }
+
+    private boolean isPublicPath(String path) {
+        return authProperties.getPublicPaths().stream()
+                .anyMatch(publicPath -> path.startsWith(publicPath) || path.equalsIgnoreCase(publicPath));
     }
 
     @Override

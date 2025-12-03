@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface ProductRepositoryCustom {
     List<Product> searchProducts(SearchRequest searchRequest);
+    long countProducts(SearchRequest searchRequest);
 }
 

@@ -1,5 +1,7 @@
 package com.blibli.training.cart.entity;
 
+import java.math.BigDecimal;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -24,7 +26,9 @@ public class CartItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long productId;
+    private String productCode;
+    private String productName;
+    private BigDecimal price;
     private Integer quantity;
 
     @ManyToOne

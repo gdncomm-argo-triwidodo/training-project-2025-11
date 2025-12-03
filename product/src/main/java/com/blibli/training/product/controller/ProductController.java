@@ -2,6 +2,7 @@ package com.blibli.training.product.controller;
 
 import com.blibli.training.framework.dto.BaseResponse;
 import com.blibli.training.product.entity.Product;
+import com.blibli.training.product.model.web.PagedProductResponse;
 import com.blibli.training.product.model.web.SearchRequest;
 import com.blibli.training.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,7 @@ public class ProductController {
     }
 
     @PostMapping("/search")
-    public BaseResponse<List<Product>> searchProducts(@RequestBody SearchRequest searchRequest) {
+    public BaseResponse<PagedProductResponse> searchProducts(@RequestBody SearchRequest searchRequest) {
         return BaseResponse.success(productService.searchProducts(searchRequest));
     }
     

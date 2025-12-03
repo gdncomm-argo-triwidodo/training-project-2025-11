@@ -5,17 +5,14 @@ spring:
   application:
     name: cart-service
   datasource:
-    url: jdbc:h2:mem:cartdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
+    url: jdbc:postgresql://homelab.gosoft.web.id:5432/order
+    driverClassName: org.postgresql.Driver
+    username: admin_db
+    password: Password
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-  h2:
-    console:
-      enabled: true
 
 springdoc:
   api-docs:
