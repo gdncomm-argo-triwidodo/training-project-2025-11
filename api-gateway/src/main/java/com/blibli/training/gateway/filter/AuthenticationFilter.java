@@ -33,9 +33,12 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         
+        // for public
         if (isPublicPath(path)) {
             return chain.filter(exchange);
         }
+
+        // for private
 
         String token = extractToken(exchange.getRequest());
         if (token == null || !jwtUtils.validateToken(token)) {
@@ -53,8 +56,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             }
         }
 
-        // Extract userId from claims (not subject which is email)
-        String userId = String.valueOf(jwtUtils.getClaimFromToken(token, claims -> claims.get("userId")));
+        Object userIdObj = jwtUtils.getClaimFromToken(token, claims -> claims.get("userId"));
+        String userId = String.valueOf(userIdObj);
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .header("X-User-Id", userId)
                 .build();
