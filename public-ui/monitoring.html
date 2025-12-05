@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Gateway Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card h2 {
+            color: #00d9ff;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card h2::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: #aaa;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .metric-value.warning {
+            color: #ffaa00;
+        }
+        
+        .metric-value.danger {
+            color: #ff4444;
+        }
+        
+        .status-up {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .status-down {
+            color: #ff4444;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 10px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-fill.green {
+            background: linear-gradient(90deg, #00ff88, #00d9ff);
+        }
+        
+        .progress-fill.yellow {
+            background: linear-gradient(90deg, #ffaa00, #ff6600);
+        }
+        
+        .progress-fill.red {
+            background: linear-gradient(90deg, #ff4444, #ff0000);
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .service-card {
+            background: rgba(0, 217, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .service-card h3 {
+            font-size: 0.9rem;
+            color: #00d9ff;
+            margin-bottom: 5px;
+        }
+        
+        .service-card a {
+            color: #00ff88;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .service-card a:hover {
+            text-decoration: underline;
+        }
+        
+        .last-update {
+            text-align: center;
+            color: #666;
+            margin-top: 30px;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: pulse 1.5s infinite;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin-top: 15px;
+        }
+        
+        .card.wide {
+            grid-column: span 2;
+        }
+        
+        @media (max-width: 768px) {
+            .card.wide {
+                grid-column: span 1;
+            }
+        }
+        
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 API Gateway Monitor</h1>
+        <p>Real-time monitoring dashboard for Spring Cloud Gateway</p>
+        <button class="refresh-btn" onclick="refreshAll()">🔄 Refresh Data</button>
+    </div>
+    
+    <div class="dashboard">
+        <!-- Health Status -->
+        <div class="card">
+            <h2>Health Status</h2>
+            <div id="health-content" class="loading">Loading</div>
+        </div>
+        
+        <!-- JVM Memory -->
+        <div class="card">
+            <h2>JVM Memory</h2>
+            <div id="memory-content" class="loading">Loading</div>
+        </div>
+        
+        <!-- CPU & System -->
+        <div class="card">
+            <h2>CPU & System</h2>
+            <div id="cpu-content" class="loading">Loading</div>
+        </div>
+        
+        <!-- HTTP Requests -->
+        <div class="card">
+            <h2>HTTP Statistics</h2>
+            <div id="http-content" class="loading">Loading</div>
+        </div>
+        
+        <!-- Threads -->
+        <div class="card">
+            <h2>Thread Pool</h2>
+            <div id="thread-content" class="loading">Loading</div>
+        </div>
+        
+        <!-- Memory Usage Graph -->
+        <div class="card wide">
+            <h2>📈 Memory Usage Over Time</h2>
+            <div class="chart-container">
+                <canvas id="memoryChart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00ff88;"></div>
+                    <span>Heap Used</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00d9ff;"></div>
+                    <span>Heap Committed</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: rgba(255,68,68,0.5);"></div>
+                    <span>Heap Max</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CPU Usage Graph -->
+        <div class="card wide">
+            <h2>📈 Application CPU Usage Over Time</h2>
+            <div class="chart-container">
+                <canvas id="cpuChart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00ff88;"></div>
+                    <span>Gateway Application CPU</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Backend Services -->
+        <div class="card">
+            <h2>Backend Services Monitoring</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <h3>👤 Member Service</h3>
+                    <a href="http://localhost:8081/member/monitoring" target="_blank">JavaMelody →</a>
+                </div>
+                <div class="service-card">
+                    <h3>📦 Product Service</h3>
+                    <a href="http://localhost:8082/product-service/monitoring" target="_blank">JavaMelody →</a>
+                </div>
+                <div class="service-card">
+                    <h3>🛒 Cart Service</h3>
+                    <a href="http://localhost:8083/monitoring" target="_blank">JavaMelody →</a>
+                </div>
+                <div class="service-card">
+                    <h3>📊 Prometheus Metrics</h3>
+                    <a href="/actuator/prometheus" target="_blank">View Raw →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <p class="last-update" id="last-update">Last updated: Never</p>
+    
+    <script>
+        // Configure this to your API Gateway URL
+        const BASE_URL = 'http://localhost:7070/actuator';
+        
+        // Chart data storage
+        const MAX_DATA_POINTS = 30;
+        const memoryData = {
+            labels: [],
+            heapUsed: [],
+            heapCommitted: [],
+            heapMax: []
+        };
+        const cpuData = {
+            labels: [],
+            systemCpu: [],
+            processCpu: []
+        };
+        
+        // Initialize Memory Chart
+        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+        const memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: memoryData.labels,
+                datasets: [
+                    {
+                        label: 'Heap Used',
+                        data: memoryData.heapUsed,
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Heap Committed',
+                        data: memoryData.heapCommitted,
+                        borderColor: '#00d9ff',
+                        backgroundColor: 'rgba(0, 217, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Heap Max',
+                        data: memoryData.heapMax,
+                        borderColor: 'rgba(255, 68, 68, 0.5)',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 300
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + formatBytes(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#888',
+                            maxRotation: 0
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#888',
+                            callback: function(value) {
+                                return formatBytes(value);
+                            }
+                        },
+                        beginAtZero: true
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // Initialize CPU Chart - Only Application CPU
+        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+        const cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: cpuData.labels,
+                datasets: [
+                    {
+                        label: 'Application CPU',
+                        data: cpuData.processCpu,
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 300
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#888',
+                            maxRotation: 0
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#888',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        beginAtZero: true,
+                        suggestedMax: 10 // Auto-scales up if needed, but starts at 10% for visibility
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // Function to update charts
+        function updateCharts(memUsed, memCommitted, memMax, sysCpu, procCpu) {
+            const now = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            // Update memory data
+            memoryData.labels.push(now);
+            memoryData.heapUsed.push(memUsed);
+            memoryData.heapCommitted.push(memCommitted);
+            memoryData.heapMax.push(memMax);
+            
+            // Keep only last MAX_DATA_POINTS
+            if (memoryData.labels.length > MAX_DATA_POINTS) {
+                memoryData.labels.shift();
+                memoryData.heapUsed.shift();
+                memoryData.heapCommitted.shift();
+                memoryData.heapMax.shift();
+            }
+            
+            // Update CPU data
+            cpuData.labels.push(now);
+            cpuData.systemCpu.push(sysCpu);
+            cpuData.processCpu.push(procCpu);
+            
+            if (cpuData.labels.length > MAX_DATA_POINTS) {
+                cpuData.labels.shift();
+                cpuData.systemCpu.shift();
+                cpuData.processCpu.shift();
+            }
+            
+            // Update charts
+            memoryChart.update('none');
+            cpuChart.update('none');
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+        
+        function getProgressClass(percent) {
+            if (percent < 60) return 'green';
+            if (percent < 80) return 'yellow';
+            return 'red';
+        }
+        
+        function getValueClass(percent) {
+            if (percent < 60) return '';
+            if (percent < 80) return 'warning';
+            return 'danger';
+        }
+        
+        async function fetchMetric(name) {
+            try {
+                const response = await fetch(`${BASE_URL}/metrics/${name}`);
+                if (!response.ok) return null;
+                return await response.json();
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        async function fetchHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                
+                let html = `
+                    <div class="metric">
+                        <span class="metric-label">Overall Status</span>
+                        <span class="metric-value ${data.status === 'UP' ? 'status-up' : 'status-down'}">
+                            ${data.status === 'UP' ? '✅ UP' : '❌ DOWN'}
+                        </span>
+                    </div>
+                `;
+                
+                if (data.components) {
+                    for (const [name, component] of Object.entries(data.components)) {
+                        html += `
+                            <div class="metric">
+                                <span class="metric-label">${name}</span>
+                                <span class="metric-value ${component.status === 'UP' ? 'status-up' : 'status-down'}">
+                                    ${component.status === 'UP' ? '✅' : '❌'} ${component.status}
+                                </span>
+                            </div>
+                        `;
+                    }
+                }
+                
+                document.getElementById('health-content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('health-content').innerHTML = '<p style="color:#ff4444">Failed to load health data</p>';
+            }
+        }
+        
+        // Store last fetched values for chart updates
+        let lastMemoryValues = { used: 0, committed: 0, max: 0 };
+        let lastCpuValues = { system: 0, process: 0 };
+        
+        async function fetchMemory() {
+            try {
+                const heapUsed = await fetchMetric('jvm.memory.used');
+                const heapMax = await fetchMetric('jvm.memory.max');
+                const heapCommitted = await fetchMetric('jvm.memory.committed');
+                
+                const used = heapUsed?.measurements?.[0]?.value || 0;
+                const max = heapMax?.measurements?.[0]?.value || 1;
+                const committed = heapCommitted?.measurements?.[0]?.value || 0;
+                const percent = Math.round((used / max) * 100);
+                
+                // Store for chart update
+                lastMemoryValues = { used, committed, max };
+                
+                const html = `
+                    <div class="metric">
+                        <span class="metric-label">Heap Used</span>
+                        <span class="metric-value ${getValueClass(percent)}">${formatBytes(used)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Heap Max</span>
+                        <span class="metric-value">${formatBytes(max)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Heap Committed</span>
+                        <span class="metric-value">${formatBytes(committed)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Usage</span>
+                        <span class="metric-value ${getValueClass(percent)}">${percent}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${getProgressClass(percent)}" style="width: ${percent}%"></div>
+                    </div>
+                `;
+                
+                document.getElementById('memory-content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('memory-content').innerHTML = '<p style="color:#ff4444">Failed to load memory data</p>';
+            }
+        }
+        
+        async function fetchCPU() {
+            try {
+                const cpuUsage = await fetchMetric('system.cpu.usage');
+                const processCpu = await fetchMetric('process.cpu.usage');
+                const uptime = await fetchMetric('process.uptime');
+                const startTime = await fetchMetric('process.start.time');
+                
+                const systemCpu = Math.round((cpuUsage?.measurements?.[0]?.value || 0) * 100);
+                const procCpu = Math.round((processCpu?.measurements?.[0]?.value || 0) * 100);
+                const uptimeSec = uptime?.measurements?.[0]?.value || 0;
+                
+                // Store for chart update
+                lastCpuValues = { system: systemCpu, process: procCpu };
+                
+                const hours = Math.floor(uptimeSec / 3600);
+                const minutes = Math.floor((uptimeSec % 3600) / 60);
+                const seconds = Math.floor(uptimeSec % 60);
+                
+                const html = `
+                    <div class="metric">
+                        <span class="metric-label">System CPU</span>
+                        <span class="metric-value ${getValueClass(systemCpu)}">${systemCpu}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${getProgressClass(systemCpu)}" style="width: ${systemCpu}%"></div>
+                    </div>
+                    <div class="metric" style="margin-top: 15px">
+                        <span class="metric-label">Process CPU</span>
+                        <span class="metric-value ${getValueClass(procCpu)}">${procCpu}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${getProgressClass(procCpu)}" style="width: ${procCpu}%"></div>
+                    </div>
+                    <div class="metric" style="margin-top: 15px">
+                        <span class="metric-label">Uptime</span>
+                        <span class="metric-value">${hours}h ${minutes}m ${seconds}s</span>
+                    </div>
+                `;
+                
+                document.getElementById('cpu-content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('cpu-content').innerHTML = '<p style="color:#ff4444">Failed to load CPU data</p>';
+            }
+        }
+        
+        async function fetchHTTP() {
+            try {
+                const httpRequests = await fetchMetric('http.server.requests');
+                
+                if (!httpRequests) {
+                    document.getElementById('http-content').innerHTML = '<p style="color:#888">No HTTP data yet</p>';
+                    return;
+                }
+                
+                const count = httpRequests.measurements?.find(m => m.statistic === 'COUNT')?.value || 0;
+                const totalTime = httpRequests.measurements?.find(m => m.statistic === 'TOTAL_TIME')?.value || 0;
+                const maxTime = httpRequests.measurements?.find(m => m.statistic === 'MAX')?.value || 0;
+                const avgTime = count > 0 ? (totalTime / count * 1000).toFixed(2) : 0;
+                
+                const html = `
+                    <div class="metric">
+                        <span class="metric-label">Total Requests</span>
+                        <span class="metric-value">${formatNumber(Math.round(count))}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Response Time</span>
+                        <span class="metric-value">${avgTime} ms</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Max Response Time</span>
+                        <span class="metric-value">${(maxTime * 1000).toFixed(2)} ms</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Time</span>
+                        <span class="metric-value">${totalTime.toFixed(2)} s</span>
+                    </div>
+                `;
+                
+                document.getElementById('http-content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('http-content').innerHTML = '<p style="color:#ff4444">Failed to load HTTP data</p>';
+            }
+        }
+        
+        async function fetchThreads() {
+            try {
+                const threadLive = await fetchMetric('jvm.threads.live');
+                const threadPeak = await fetchMetric('jvm.threads.peak');
+                const threadDaemon = await fetchMetric('jvm.threads.daemon');
+                
+                const live = threadLive?.measurements?.[0]?.value || 0;
+                const peak = threadPeak?.measurements?.[0]?.value || 0;
+                const daemon = threadDaemon?.measurements?.[0]?.value || 0;
+                
+                const html = `
+                    <div class="metric">
+                        <span class="metric-label">Live Threads</span>
+                        <span class="metric-value">${Math.round(live)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Peak Threads</span>
+                        <span class="metric-value">${Math.round(peak)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Daemon Threads</span>
+                        <span class="metric-value">${Math.round(daemon)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Non-Daemon</span>
+                        <span class="metric-value">${Math.round(live - daemon)}</span>
+                    </div>
+                `;
+                
+                document.getElementById('thread-content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('thread-content').innerHTML = '<p style="color:#ff4444">Failed to load thread data</p>';
+            }
+        }
+        
+        async function refreshAll() {
+            await Promise.all([
+                fetchHealth(),
+                fetchMemory(),
+                fetchCPU(),
+                fetchHTTP(),
+                fetchThreads()
+            ]);
+            
+            // Update charts with collected data
+            updateCharts(
+                lastMemoryValues.used,
+                lastMemoryValues.committed,
+                lastMemoryValues.max,
+                lastCpuValues.system,
+                lastCpuValues.process
+            );
+            
+            document.getElementById('last-update').textContent = 
+                'Last updated: ' + new Date().toLocaleTimeString();
+        }
+        
+        // Initial load
+        refreshAll();
+        
+        // Auto-refresh every 5 seconds
+        setInterval(refreshAll, 5000);
+    </script>
+</body>
+</html>
+

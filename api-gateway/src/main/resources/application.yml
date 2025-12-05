@@ -50,3 +50,28 @@ gateway:
       - /member/hello
       - /product-service/products
       - /product-service/products/
+      - /actuator
+      - /actuator/**
+
+# Spring Boot Actuator Configuration (WebFlux compatible)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Disable JavaMelody for WebFlux (not compatible)
+javamelody:
+  enabled: false

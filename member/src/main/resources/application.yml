@@ -24,3 +24,15 @@ springdoc:
 
 jwt:
   secret: ${JWT_SECRET:MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890}
+
+# JavaMelody Monitoring Configuration
+javamelody:
+  enabled: true
+  excluded-datasources: none
+  spring-monitoring-enabled: true
+  init-parameters:
+    monitoring-path: /monitoring
+    storage-directory: /tmp/javamelody/member-service
+    resolution-seconds: 60
+    log: true
+    url-exclude-pattern: (/webjars/.*|/css/.*|/js/.*|/images/.*|/favicon\.ico|/actuator/.*)

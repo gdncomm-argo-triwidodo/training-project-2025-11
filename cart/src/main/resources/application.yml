@@ -19,3 +19,15 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# JavaMelody Monitoring Configuration
+javamelody:
+  enabled: true
+  excluded-datasources: none
+  spring-monitoring-enabled: true
+  init-parameters:
+    monitoring-path: /monitoring
+    storage-directory: /tmp/javamelody/cart-service
+    resolution-seconds: 60
+    log: true
+    url-exclude-pattern: (/webjars/.*|/css/.*|/js/.*|/images/.*|/favicon\.ico|/actuator/.*)
