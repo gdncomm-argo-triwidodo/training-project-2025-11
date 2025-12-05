@@ -1,0 +1,135 @@
+version: '3.8'
+
+# ================================
+# Docker Compose for External Databases
+# Uses your existing external databases at homelab.gosoft.web.id
+# ================================
+
+services:
+  # ================================
+  # API Gateway Service
+  # ================================
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "7070:7070"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
+      # Override service URLs for container networking
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://member-service:8081
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_URI=http://product-service:8082
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_URI=http://cart-service:8083
+    depends_on:
+      member-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # ================================
+  # Member Service (External PostgreSQL)
+  # ================================
+  member-service:
+    build:
+      context: .
+      dockerfile: member/Dockerfile
+    container_name: member-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
+      # External PostgreSQL
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://homelab.gosoft.web.id:5432/member
+      - SPRING_DATASOURCE_USERNAME=admin_db
+      - SPRING_DATASOURCE_PASSWORD=Password
+    networks:
+      - microservices-network
+    restart: unless-stopped
+    volumes:
+      - member-javamelody:/tmp/javamelody/member-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/member/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ================================
+  # Product Service (External MongoDB)
+  # ================================
+  product-service:
+    build:
+      context: .
+      dockerfile: product/Dockerfile
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      # External MongoDB
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo_admin:%211Password@homelab.gosoft.web.id:27017/product?authSource=admin
+      - SPRING_DATA_MONGODB_DATABASE=product
+    networks:
+      - microservices-network
+    restart: unless-stopped
+    volumes:
+      - product-javamelody:/tmp/javamelody/product-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/product-service/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ================================
+  # Cart Service (External PostgreSQL)
+  # ================================
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart/Dockerfile
+    container_name: cart-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      # External PostgreSQL
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://homelab.gosoft.web.id:5432/order
+      - SPRING_DATASOURCE_USERNAME=admin_db
+      - SPRING_DATASOURCE_PASSWORD=Password
+    networks:
+      - microservices-network
+    restart: unless-stopped
+    volumes:
+      - cart-javamelody:/tmp/javamelody/cart-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+# ================================
+# Networks
+# ================================
+networks:
+  microservices-network:
+    driver: bridge
+
+# ================================
+# Volumes
+# ================================
+volumes:
+  member-javamelody:
+  product-javamelody:
+  cart-javamelody:
+

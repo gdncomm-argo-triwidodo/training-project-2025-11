@@ -25,6 +25,16 @@ springdoc:
 jwt:
   secret: ${JWT_SECRET:MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890}
 
+# Spring Boot Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
 # JavaMelody Monitoring Configuration
 javamelody:
   enabled: true

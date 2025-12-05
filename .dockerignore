@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+*.iml
+.vscode
+.settings
+.project
+.classpath
+
+# Build output
+**/target/
+**/build/
+**/out/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test reports
+**/surefire-reports/
+**/test-results/
+
+# JMeter files
+*.jmx
+*.jtl
+
+# Documentation
+*.md
+readme/
+docs/
+
+# Node (if any)
+node_modules/
+package-lock.json
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Temp files
+*.tmp
+*.swp
+*~
+
+# Public UI (not needed in service containers)
+public-ui/
+

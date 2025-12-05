@@ -20,6 +20,16 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# Spring Boot Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
 # JavaMelody Monitoring Configuration
 javamelody:
   enabled: true
