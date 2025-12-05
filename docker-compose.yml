@@ -19,10 +19,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - JWT_SECRET=MyVeryLongDefaultSecretKeyMustBeLongEnoughToSatisfyHS256Requirements1234567890
-      # Override service URLs for container networking
-      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://member-service:8081
-      - SPRING_CLOUD_GATEWAY_ROUTES_1_URI=http://product-service:8082
-      - SPRING_CLOUD_GATEWAY_ROUTES_2_URI=http://cart-service:8083
     depends_on:
       member-service:
         condition: service_healthy

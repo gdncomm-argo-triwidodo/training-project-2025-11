@@ -1,0 +1,20 @@
+# Docker profile configuration
+# Overrides service URIs for container networking
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: member-service
+          uri: http://member-service:8081
+          predicates:
+            - Path=/member/**
+        - id: product-service
+          uri: http://product-service:8082
+          predicates:
+            - Path=/product-service/**
+        - id: cart-service
+          uri: http://cart-service:8083
+          predicates:
+            - Path=/cart/**
+
